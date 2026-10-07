@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.dist/
+dist/
+.build/
+.venv/
+
+# Env
+.env
+
+# Reports / caches
+cache/
+reports/
+*.log
+*.jsonl
+
+_sample_output/
+_sample_quarantine/
+_sample_review/
+_sample_source/
+_sample_target/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,37 @@
+# Business rules (see spec.md)
+
+# ExifTool
+exiftool_path: "exiftool"
+
+# Clustering
+cluster_time_window_minutes: 45
+same_place_radius_m: 300
+place_change_radius_m: 1000
+stay_radius_km: 25
+max_gap_days_in_stay: 1
+
+# Volume thresholds
+event_min_items: 20
+month_min_items: 15
+quarter_fallback_enabled: true
+
+# Live Photos
+live_subfolder_suffix: " - live"
+orphan_live_policy: "live_subfolder"  # "live_subfolder" | "video_single" | "review" | "ignore"
+
+# Duplicates
+hash_algorithm: "md5"          # "md5" | "sha256"
+duplicate_policy: "quarantine" # "quarantine" | "skip" | "report_only"
+
+# Geocoding
+geocode_cache: "./cache/geocode.json"
+geocode_provider: "nominatim"
+
+# Confidence scoring (spec §12). Computed and stored on the plan either way;
+# only gates the action (auto vs review) when this is true. Default is full
+# auto: never force a review based on the confidence score.
+usual_place_min_distinct_days: 10
+confidence_review_enabled: false
+
+# Execution
+log_level: "INFO"
