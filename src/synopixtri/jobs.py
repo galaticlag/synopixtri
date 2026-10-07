@@ -148,6 +148,8 @@ def _pass(conn, job_id, cfg, paths, tz, now, dry_run, skip_brake, reader, geocod
     stats: dict = {
         "inbox_files": len(items),
         "stable_files": sum(1 for i in items if i.stable),
+        "unstable_files": sum(1 for i in items if not i.stable),
+        "stability_min": cfg.stability_min,
         "units": len(ready),
         "folders_renamed_by_user": renamed,
         "folders_adopted": adopted,

@@ -195,6 +195,7 @@ function summary(job) {
   if (s.moved !== undefined) parts.push(`${s.moved} déplacés`);
   if (s.planned !== undefined) parts.push(`${s.planned} prévus`);
   if (s.failed) parts.push(`${s.failed} erreurs`);
+  if (s.unstable_files) parts.push(`${s.unstable_files} fichiers pas encore stables (inchangés depuis moins de ${s.stability_min || 10} min, ils seront traités au prochain passage)`);
   if (s.restored !== undefined) parts.push(`${s.restored} remis dans l'arrivée`);
   if (s.purged) parts.push(`${s.purged} supprimés (mis de côté depuis longtemps)`);
   const held = Object.entries(s.held || {}).map(([k, v]) => `${v} ${HELD[k] || k}`).join(", ");
