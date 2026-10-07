@@ -84,6 +84,7 @@ DEFAULTS: dict[str, object] = {
     # Content analysis (thumbnails, Pillow only). Suggestions only count through a user rule.
     "analysis_enabled": False,
     "analysis_max_per_pass": 200,
+    "meta_budget_min": 10,
     "blur_threshold": 40.0,
     "dark_threshold": 45.0,
     "near_duplicate_distance": 4,

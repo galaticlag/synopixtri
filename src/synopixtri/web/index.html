@@ -195,6 +195,7 @@ function summary(job) {
   if (s.moved !== undefined) parts.push(`${s.moved} déplacés`);
   if (s.planned !== undefined) parts.push(`${s.planned} prévus`);
   if (s.failed) parts.push(`${s.failed} erreurs`);
+  if (s.unread_files) parts.push(`${s.unread_files} fichiers à lire au prochain passage`);
   if (s.unstable_files) parts.push(`${s.unstable_files} fichiers pas encore stables (inchangés depuis moins de ${s.stability_min || 10} min, ils seront traités au prochain passage)`);
   if (s.restored !== undefined) parts.push(`${s.restored} remis dans l'arrivée`);
   if (s.purged) parts.push(`${s.purged} supprimés (mis de côté depuis longtemps)`);
@@ -210,7 +211,8 @@ async function refresh() {
     $("nextSub").textContent = st.scheduler_error ? "Erreur : " + st.scheduler_error : "";
     $("inbox").textContent = st.inbox_files;
     $("last").textContent = st.last_job ? (STATE[st.last_job.state] || st.last_job.state) : "-";
-    $("lastSub").textContent = st.last_job ? fmt(st.last_job.started_at) : "";
+    $("lastSub").textContent = (st.last_job ? fmt(st.last_job.started_at) : "")
+      + (st.progress ? ` - lecture des fichiers : ${st.progress.done} / ${st.progress.total}` : "");
     const b = $("b-validate"); b.textContent = st.proposals; b.classList.toggle("hidden", !st.proposals);
     $("alert").innerHTML = (st.paused_jobs.length
       ? `<div class="card warn"><b>Frein d'urgence :</b> un passage dépasse la limite de fichiers et attend ta confirmation.
@@ -531,7 +533,7 @@ const GROUPS = [
   ["Live Photos", [["live_partner_wait_min", "Attente du fichier compagnon (minutes)"], ["live_suffix", "Suffixe du sous-dossier des vidéos Live"], ["orphan_live_policy", "Vidéo Live sans photo", ["live_subfolder", "review", "video_single"]]]],
   ["Libellés", [["routine_label", "Libellé vie quotidienne"], ["placeholder_label", "Libellé provisoire"], ["unknown_place", "Lieu inconnu"]]],
   ["Mis de côté", [["aside_purge_days", "Supprimer définitivement après N jours (0 = jamais)"], ["aside_purge_confirmed", "Je confirme vouloir supprimer définitivement ces fichiers"]]],
-  ["Analyse du contenu", [["analysis_enabled", "Analyser toutes les images (sinon seulement si une règle en a besoin)"], ["analysis_max_per_pass", "Images analysées par passage"],
+  ["Analyse du contenu", [["analysis_enabled", "Analyser toutes les images (sinon seulement si une règle en a besoin)"], ["analysis_max_per_pass", "Images analysées par passage"], ["meta_budget_min", "Lecture des métadonnées : minutes maximum par passage (le reste au passage suivant)"],
     ["blur_threshold", "Seuil de flou (plus haut = plus de photos jugées floues)"], ["dark_threshold", "Seuil d'obscurité (0 à 255)"], ["near_duplicate_distance", "Distance pour « quasi identique » (0 à 64)"]]],
   ["Rappel « à nommer »", [["notify_kind", "Canal", ["none", "ntfy", "webhook", "email"]], ["notify_url", "Adresse (ntfy ou webhook)"], ["notify_after_days", "Prévenir si un dossier attend depuis (jours)"], ["notify_every_days", "Au plus un rappel tous les (jours)"],
     ["smtp_host", "Courriel : serveur SMTP"], ["smtp_port", "Port (587 STARTTLS, 465 SSL)"], ["smtp_user", "Identifiant"], ["smtp_password", "Mot de passe", "password"], ["smtp_from", "Expéditeur"], ["smtp_to", "Destinataire"]]],

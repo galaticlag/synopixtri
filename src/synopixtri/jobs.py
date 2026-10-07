@@ -106,6 +106,36 @@ def _run(boot, dry_run, skip_brake, now, reader, geocoder) -> int:
         conn.close()
 
 
+_META_CHUNK = 200
+
+
+def _set_progress(conn, value: dict | None) -> None:
+    if value is None:
+        conn.execute("DELETE FROM kv WHERE key='progress'")
+    else:
+        conn.execute(
+            "INSERT INTO kv(key, value) VALUES('progress', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (json.dumps(value),),
+        )
+    conn.commit()
+
+
+def _read_metadata(conn, need: list, read, budget_s: float) -> None:
+    """Read metadata chunk by chunk and save each chunk at once: a long first pass (tens of thousands of
+    files on a small NAS) shows its progress, survives an interruption and stops after ``budget_s``
+    seconds, the rest being read by the next pass."""
+    started = time.time()
+    for start in range(0, len(need), _META_CHUNK):
+        if start and time.time() - started > budget_s:
+            break
+        chunk = need[start : start + _META_CHUNK]
+        metas = read([i.path for i in chunk])
+        for item in chunk:
+            item.meta = metas.get(item.path) or Meta(error="no metadata")
+            scan.store_meta(conn, item)
+        _set_progress(conn, {"phase": "metadata", "done": min(start + _META_CHUNK, len(need)), "total": len(need)})
+
+
 def _pass(conn, job_id, cfg, paths, tz, now, dry_run, skip_brake, reader, geocoder) -> dict:
     paths.inbox.mkdir(parents=True, exist_ok=True)
     paths.library.mkdir(parents=True, exist_ok=True)
@@ -120,12 +150,11 @@ def _pass(conn, job_id, cfg, paths, tz, now, dry_run, skip_brake, reader, geocod
         item.meta = Meta(mime="sidecar")  # nothing to read: only a rule can place these
         scan.store_meta(conn, item)
     need = [i for i in need if i.ext not in SIDECAR_EXTS]
-    if need:
-        metas = read([i.path for i in need])
-        for item in need:
-            item.meta = metas.get(item.path) or Meta(error="no metadata")
-            scan.store_meta(conn, item)
+    _read_metadata(conn, need, read, cfg.meta_budget_min * 60)
+    _set_progress(conn, None)
     conn.commit()
+    unread = [i for i in items if i.stable and i.meta is None]
+    items = [i for i in items if i not in unread]  # read at the next pass, never planned half-known
 
     rule_list = rules.load(conn, enabled_only=True)
     analysed = _analyse(conn, cfg, items, rules.needs_analysis(rule_list))
@@ -149,6 +178,7 @@ def _pass(conn, job_id, cfg, paths, tz, now, dry_run, skip_brake, reader, geocod
         "inbox_files": len(items),
         "stable_files": sum(1 for i in items if i.stable),
         "unstable_files": sum(1 for i in items if not i.stable),
+        "unread_files": len(unread),
         "stability_min": cfg.stability_min,
         "units": len(ready),
         "folders_renamed_by_user": renamed,

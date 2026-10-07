@@ -420,3 +420,30 @@ def test_near_duplicates_keep_the_sharpest(env):
     flagged, groups = analysis.near_duplicates([("a", a), ("b", b), ("c", c)], 4)
     assert len(groups) == 1 and set(groups[0]) == {"a", "b"} and groups[0][0] == "a" and flagged == {"b"}
     assert os.path.exists(env.inbox / "a.JPG")
+
+
+def test_metadata_is_read_in_saved_chunks_and_stops_at_the_time_budget(env):
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from synopixtri import jobs
+    from synopixtri.models import Meta
+
+    items = [SimpleNamespace(path=Path(f"/inbox/{i}.jpg"), meta=None, ext=".jpg", stable=True) for i in range(450)]
+    conn = env.conn()
+    for item in items:
+        conn.execute("INSERT INTO inbox_file(path,size,mtime_ns,first_seen,last_change) VALUES(?,1,1,0,0)", (str(item.path),))
+    calls = []
+
+    def reader(paths):
+        calls.append(len(paths))
+        return {p: Meta(mime="image/jpeg") for p in paths}
+
+    jobs._read_metadata(conn, items, reader, budget_s=3600)
+    assert calls == [200, 200, 50] and all(i.meta for i in items)
+
+    fresh = [SimpleNamespace(path=Path(f"/inbox/{i}.jpg"), meta=None, ext=".jpg", stable=True) for i in range(450)]
+    calls.clear()
+    jobs._read_metadata(conn, fresh, reader, budget_s=-1)  # budget already spent: one chunk, the rest later
+    assert calls == [200] and sum(1 for i in fresh if i.meta) == 200
+    conn.close()

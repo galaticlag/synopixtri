@@ -88,6 +88,7 @@ def create_app(boot: config.Bootstrap, *, start_scheduler: bool = True) -> FastA
                 "paused_jobs": [r["id"] for r in c.execute("SELECT id FROM job WHERE state='paused_brake'")],
                 "proposals": c.execute("SELECT COUNT(*) FROM proposal").fetchone()[0],
                 "validation_mode": bool(values["validation_mode"]),
+                "progress": json.loads(p["value"]) if (p := c.execute("SELECT value FROM kv WHERE key='progress'").fetchone()) else None,
             }
 
     @app.get("/api/settings")
