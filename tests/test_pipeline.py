@@ -119,6 +119,7 @@ def test_duplicate_of_a_file_already_in_the_library(env):
 
 
 def test_unreliable_date_goes_to_review(env):
+    env.settings(file_date_policy="never")
     meta = photo(2026, 3, 1)
     meta.date_reliable, meta.date_source = False, "file"
     env.add("nodate.PNG", meta)

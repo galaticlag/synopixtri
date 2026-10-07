@@ -155,6 +155,10 @@ def _pass(conn, job_id, cfg, paths, tz, now, dry_run, skip_brake, reader, geocod
     _read_metadata(conn, need, read, cfg.meta_budget_min * 60)
     _set_progress(conn, None)
     conn.commit()
+    for item in items:
+        if item.meta is not None:
+            exif.refine_date(item.meta, item.path.name, item.mtime_ns, item.first_seen, cfg.file_date_policy,
+                             cfg.file_date_min_age_days, now, tz)
     unread = [i for i in items if i.stable and i.meta is None]
     items = [i for i in items if i not in unread]  # read at the next pass, never planned half-known
 

@@ -526,6 +526,7 @@ const GROUPS = [
   ["Planification", [["scan_interval_min", "Intervalle entre deux passages (minutes)"], ["stability_min", "Un fichier est pris en compte après (minutes sans changement)"],
     ["active_hours", "Plages horaires actives, séparées par des virgules, ex. 08:00-23:00 (vide = toujours). Utile si le NAS est éteint la nuit."], ["run_on_startup", "Faire un passage au démarrage"],
     ["startup_delay_s", "Délai avant ce passage (secondes)"], ["timezone", "Fuseau horaire"]]],
+  ["Dates", [["file_date_policy", "Photo sans date dans ses métadonnées", ["auto", "always", "never"]], ["file_date_min_age_days", "Mode auto : la date du fichier est crue si elle précède l'arrivée d'au moins (jours)"]]],
   ["Dossiers (relatifs à la racine des photos)", [["inbox_dir", "Arrivée"], ["library_dir", "Bibliothèque"], ["review_dir", "À revoir"], ["quarantine_dir", "Doublons"], ["aside_dir", "Mis de côté"]]],
   ["Regroupement", [["event_min_items", "Médias par jour pour faire un événement"], ["away_event_min_items", "Idem hors de chez toi"], ["home_lat", "Latitude du domicile"], ["home_lon", "Longitude du domicile"],
     ["home_radius_km", "Rayon du domicile (km)"], ["stay_radius_km", "Distance max pour fusionner des jours en séjour (km)"], ["max_gap_days_in_stay", "Jours creux tolérés dans un séjour"]]],

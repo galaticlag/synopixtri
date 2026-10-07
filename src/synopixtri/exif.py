@@ -78,6 +78,49 @@ def select_reference_date(
     return None, "none", False
 
 
+_NAME_DATE = re.compile(
+    r"(?<!\d)((?:19|20)\d{2})[-_.]?(0[1-9]|1[0-2])[-_.]?(0[1-9]|[12]\d|3[01])(?:[ T_-]?([01]\d|2[0-3])[-_.:]?([0-5]\d)[-_.:]?([0-5]\d))?(?!\d)"
+)
+_UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-", re.I)
+
+
+def date_from_name(name: str, now: datetime) -> datetime | None:
+    """Capture date written in a file name (IMG_20231013_120133, 2023-10-13 12.01.33, IMG-20231013-WA0001)."""
+    if _UUID.match(name):
+        return None
+    m = _NAME_DATE.search(name)
+    if not m:
+        return None
+    year, month, day, hh, mm, ss = (int(g) if g else 0 for g in m.groups())
+    if not 1995 <= year <= now.year + 1:
+        return None
+    try:
+        found = datetime(year, month, day, hh, mm, ss)
+    except ValueError:
+        return None
+    return found if found <= now + timedelta(days=1) else None
+
+
+def refine_date(meta: Meta, name: str, mtime_ns: int, first_seen: float, policy: str, min_age_days: float, now: float, tz: ZoneInfo) -> None:
+    """Upgrade a date the metadata did not give reliably (in memory only, the stored metadata stays raw).
+
+    1. a date written in the file name, 2. the file date, trusted only if the policy says so or, in "auto",
+    when it precedes the arrival in the inbox by ``min_age_days`` (a plain copy carries the copy date).
+    """
+    if meta.error or meta.date_reliable or policy == "never":
+        return
+    local_now = datetime.fromtimestamp(now, tz).replace(tzinfo=None)
+    named = date_from_name(name, local_now)
+    if named is not None:
+        meta.local_dt, meta.date_source, meta.date_reliable = named, "filename", True
+        return
+    if meta.local_dt is None or meta.date_source != "file":
+        return
+    old_enough = (first_seen - mtime_ns / 1e9) >= min_age_days * 86400
+    if policy == "always" or old_enough:
+        meta.date_reliable = True
+
+
 def _num(value: object) -> float | None:
     try:
         return float(value)  # type: ignore[arg-type]

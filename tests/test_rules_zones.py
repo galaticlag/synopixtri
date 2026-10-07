@@ -447,3 +447,35 @@ def test_metadata_is_read_in_saved_chunks_and_stops_at_the_time_budget(env):
     jobs._read_metadata(conn, fresh, reader, budget_s=-1)  # budget already spent: one chunk, the rest later
     assert calls == [200] and sum(1 for i in fresh if i.meta) == 200
     conn.close()
+
+
+def test_dates_from_file_names_and_file_dates():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from synopixtri import exif
+    from synopixtri.models import Meta
+
+    now = datetime(2026, 10, 7, 12).timestamp()
+    tz = ZoneInfo("UTC")
+    named = lambda n: exif.date_from_name(n, datetime(2026, 10, 7))  # noqa: E731
+    assert named("Resized_20231013_120133_1.jpeg") == datetime(2023, 10, 13, 12, 1, 33)
+    assert named("IMG-20240229-WA0001.jpg") == datetime(2024, 2, 29)
+    assert named("2023-10-13 12.01.33.jpg") == datetime(2023, 10, 13, 12, 1, 33)
+    assert named("IMG_6849.JPG") is None and named("20231313_000000.jpg") is None
+    assert named("88d6c274-d213-454f-98ec-84ad7e512680.jpg") is None and named("20990101_000000.jpg") is None
+
+    def fresh(**kw):
+        return Meta(local_dt=datetime(2019, 5, 1), date_source="file", date_reliable=False, **kw)
+
+    old_file = fresh()  # file date 40 days before the arrival: believed in auto mode
+    exif.refine_date(old_file, "IMG_1.JPG", int((now - 40 * 86400) * 1e9), now, "auto", 2, now, tz)
+    assert old_file.date_reliable
+    copied = fresh()  # file date = arrival: it is the copy date
+    exif.refine_date(copied, "IMG_1.JPG", int(now * 1e9), now, "auto", 2, now, tz)
+    assert not copied.date_reliable
+    exif.refine_date(copied, "IMG_1.JPG", int(now * 1e9), now, "always", 2, now, tz)
+    assert copied.date_reliable
+    never = fresh()
+    exif.refine_date(never, "20231013_120133.jpg", 0, now, "never", 2, now, tz)
+    assert not never.date_reliable

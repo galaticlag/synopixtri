@@ -49,6 +49,10 @@ DEFAULTS: dict[str, object] = {
     "aside_dir": "_mis_de_cote",
     # Scheduling.
     "timezone": "Europe/Paris",
+    # Files without a capture date in their metadata: "auto" trusts the date in the file name, then the file
+    # date when it is clearly older than the arrival (a copy keeps the copy date, which says nothing).
+    "file_date_policy": "auto",
+    "file_date_min_age_days": 2,
     "scan_interval_min": 30,
     "stability_min": 10,
     "active_hours": [],  # ["08:00-23:00"]; empty means always
@@ -110,6 +114,7 @@ DEFAULTS: dict[str, object] = {
 _CHOICES = {
     "orphan_live_policy": {"live_subfolder", "review", "video_single"},
     "notify_kind": {"none", "ntfy", "webhook", "email"},
+    "file_date_policy": {"auto", "always", "never"},
 }
 _PATH_KEYS = ("inbox_dir", "library_dir", "review_dir", "quarantine_dir", "aside_dir")
 SECRET_KEYS = ("smtp_password",)
