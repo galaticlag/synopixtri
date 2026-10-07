@@ -11,3 +11,4 @@ Thumbs.db
 # Local assistant instructions
 CLAUDE.md
 .claude/
+.local/
