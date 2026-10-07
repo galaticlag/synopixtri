@@ -2,7 +2,10 @@
 # old seccomp profile of the Docker 20.10.3 shipped with DSM 6.
 FROM python:3.11-slim-bullseye
 
-LABEL org.opencontainers.image.title="SynoPixtri" \n      org.opencontainers.image.description="Automatic photo and video sorter for Synology NAS" \n      org.opencontainers.image.source="https://github.com/galaticlag/synopixtri" \n      org.opencontainers.image.licenses="GPL-3.0-or-later"
+LABEL org.opencontainers.image.title="SynoPixtri" \
+      org.opencontainers.image.description="Automatic photo and video sorter for Synology NAS" \
+      org.opencontainers.image.source="https://github.com/galaticlag/synopixtri" \
+      org.opencontainers.image.licenses="GPL-3.0-or-later"
 
 # Bullseye is end of life: its packages now live on archive.debian.org.
 RUN printf 'deb http://archive.debian.org/debian bullseye main\ndeb http://archive.debian.org/debian-security bullseye-security main\n' > /etc/apt/sources.list \
