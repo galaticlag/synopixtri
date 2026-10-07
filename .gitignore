@@ -7,3 +7,7 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Local assistant instructions
+CLAUDE.md
+.claude/
