@@ -50,26 +50,34 @@ later photos of that period to it.
 
 ## Run it
 
-### On a Synology NAS (prebuilt image, no SSH)
+### On a Synology NAS: Package Center (recommended)
 
-A GitHub Action builds the image on every push to `main` and tags releases `vX.Y.Z`.
+SynoPixtri ships as a real Synology package (`.spk`): installed from Package Center with a small wizard (photo
+folder, password, owner, port), started and stopped from there, with an icon in the DSM main menu. It runs the
+Docker image inside, so the **Docker** package must be installed (DSM 6 or 7, amd64 models such as the DS1812+).
+The icon opens the web interface in a browser tab; it is not a native DSM window.
 
-1. Create the folders in File Station: your photo share (for example `photo`, with an `inbox` sub-folder) and
-   `docker/synopixtri` for the data.
-2. In the DSM **Docker** app, open **Registry**, search `synopixtri`, download the image (tag `latest` for a
-   release, `edge` for the newest development build). This works once the maintainer has set the Docker Hub
-   secrets (see below).
-3. **Image** -> select it -> **Launch**. Map port 8080, and two folders: `/volume1/photo` -> `/photos` and
-   `/volume1/docker/synopixtri` -> `/data`. Set the environment variable `SYNOPIXTRI_PASSWORD`.
-   Or paste `docker-compose.yml` in a Portainer stack.
-4. To update: download the image again, then recreate the container (the data lives in `/data`).
+Easiest, once: add the package source.
 
-The image is also published to `ghcr.io/galaticlag/synopixtri` (usable with `docker pull` or Portainer; the DSM 6
-Registry search cannot see it).
+1. Package Center -> **Settings** -> **General**: set *Trust level* to *Any publisher*.
+2. **Package Sources** -> Add: name `SynoPixtri`, location `https://galaticlag.github.io/synopixtri/packages.json`.
+   Also tick *Enable beta packages* in Settings -> General until a stable release is tagged.
+3. Package Center -> **Community** -> SynoPixtri -> Install, then fill the wizard.
 
-**Maintainers**: to publish on Docker Hub, create an access token on hub.docker.com (Account settings -> Security),
-then add the repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (GitHub: Settings -> Secrets and
-variables -> Actions). The next push publishes `<user>/synopixtri`.
+Or manually: download `synopixtri-edge.spk` from the [releases](https://github.com/galaticlag/synopixtri/releases),
+then Package Center -> **Manual Install**. To update, install the newer package over the old one: your settings
+and the database are kept.
+
+Maintainers: the source is served by GitHub Pages. Enable it once in the repository (Settings -> Pages -> Source:
+*GitHub Actions*). Each push to `main` builds the package; a `vX.Y.Z` tag publishes a stable release.
+
+### With Docker only
+
+The image is published on every push to `main` as `ghcr.io/galaticlag/synopixtri:edge` (and `:latest`, `:X.Y.Z`
+for tags). Use it with `docker pull`, Portainer, or the DSM Docker app. Mount your photo share on `/photos` and a
+data folder on `/data`, and set `SYNOPIXTRI_PASSWORD` (see `docker-compose.yml`). If you also set the repository
+secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`, the image is published on Docker Hub too, which the DSM 6
+Docker "Registry" tab can search.
 
 ### Build it yourself
 

@@ -1,0 +1,75 @@
+[
+  {
+    "step_title": "Configuration de SynoPixtri",
+    "items": [
+      {
+        "type": "textfield",
+        "desc": "Dossier partagé contenant vos photos. Il doit contenir un sous-dossier inbox (arrivée) ; la bibliothèque sera créée dans library.",
+        "subitems": [
+          {
+            "key": "wizard_photos",
+            "desc": "Dossier des photos",
+            "defaultValue": "/volume1/photo",
+            "validator": {
+              "allowBlank": false,
+              "regex": {
+                "expr": "/^\/volume[0-9]+\/[^\s'\"]+$/",
+                "errorText": "Chemin du type /volume1/photo (sans espace ni guillemet)."
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "password",
+        "desc": "Mot de passe pour ouvrir l'interface de SynoPixtri (identifiant libre, mot de passe obligatoire).",
+        "subitems": [
+          {
+            "key": "wizard_password",
+            "desc": "Mot de passe",
+            "validator": {
+              "allowBlank": false,
+              "minLength": 6
+            }
+          }
+        ]
+      },
+      {
+        "type": "textfield",
+        "desc": "Les fichiers déplacés appartiendront à cet utilisateur DSM (laissez vide pour root, déconseillé : File Station ne pourra pas tout gérer).",
+        "subitems": [
+          {
+            "key": "wizard_owner",
+            "desc": "Utilisateur propriétaire des photos",
+            "defaultValue": "",
+            "validator": {
+              "allowBlank": true,
+              "regex": {
+                "expr": "/^[A-Za-z0-9._-]*$/",
+                "errorText": "Nom d'utilisateur DSM valide."
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "textfield",
+        "desc": "Port de l'interface web.",
+        "subitems": [
+          {
+            "key": "wizard_port",
+            "desc": "Port",
+            "defaultValue": "8080",
+            "validator": {
+              "allowBlank": false,
+              "regex": {
+                "expr": "/^[0-9]{2,5}$/",
+                "errorText": "Un numéro de port."
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

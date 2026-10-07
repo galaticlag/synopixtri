@@ -1,0 +1,4 @@
+#!/bin/sh
+. "$(dirname "$0")/common"
+"$DOCKER" rm -f "$NAME" > /dev/null 2>&1
+exit 0

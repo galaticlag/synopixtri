@@ -1,0 +1,74 @@
+name: Synology package
+
+# Builds the .spk (Package Center) for amd64 Synology models and the Package Center source file.
+#   push on main -> release "edge" (pre-release) + source entry flagged beta
+#   tag vX.Y.Z   -> release vX.Y.Z + source entry (stable)
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  spk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pillow
+      - name: Build the image
+        run: |
+          docker buildx build --platform linux/amd64 -t synopixtri:spk --load .
+          docker save synopixtri:spk | gzip > image.tar.gz
+      - name: Build the package
+        run: |
+          repo="${GITHUB_REPOSITORY#*/}"
+          flag="--beta"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then flag=""; fi
+          python packaging/spk/build.py --image image.tar.gz --out dist --build "$GITHUB_RUN_NUMBER" $flag \
+            --base-url "https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${repo}"
+          ls -la dist
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          spk=$(ls dist/*.spk)
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF_NAME}"
+            gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --title "$tag" --generate-notes
+            gh release upload "$tag" "$spk" --clobber
+          elif [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            gh release view edge >/dev/null 2>&1 || gh release create edge --prerelease --title "Development build" \
+              --notes "Latest build of main. Install it manually in Package Center, or add the package source (see the README)."
+            cp "$spk" dist/synopixtri-edge.spk
+            gh release upload edge dist/synopixtri-edge.spk --clobber
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synology-package
+          path: dist/
+          retention-days: 14
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  # Package Center source (needs Settings -> Pages -> Source: "GitHub Actions" once).
+  pages:
+    needs: spk
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

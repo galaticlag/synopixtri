@@ -1,0 +1,5 @@
+# Shared by the package scripts (sourced). DSM runs them with /bin/sh.
+DOCKER="${DOCKER:-/usr/local/bin/docker}"
+NAME=synopixtri
+IMAGE=synopixtri:spk
+CONF="${SYNOPKG_PKGVAR}/config.sh"

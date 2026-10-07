@@ -1,0 +1,39 @@
+#!/bin/sh
+. "$(dirname "$0")/common"
+
+case "$1" in
+start)
+    [ -f "$CONF" ] || exit 1
+    . "$CONF"
+    mkdir -p "${SYNOPKG_PKGVAR}/data"
+    "$DOCKER" rm -f "$NAME" > /dev/null 2>&1
+    user_args=""
+    if [ -n "$OWNER" ] && id -u "$OWNER" > /dev/null 2>&1; then
+        user_args="--user $(id -u "$OWNER"):$(id -g "$OWNER")"
+    fi
+    tz="$(cat /etc/TZ 2>/dev/null)"
+    # shellcheck disable=SC2086
+    "$DOCKER" run -d --name "$NAME" $user_args \
+        -p "${PORT:-8080}:8080" \
+        -e "TZ=${tz:-UTC}" \
+        -e "SYNOPIXTRI_PASSWORD=${PASSWORD}" \
+        -v "${PHOTOS}:/photos" \
+        -v "${SYNOPKG_PKGVAR}/data:/data" \
+        "$IMAGE" > /dev/null 2>&1 || exit 1
+    exit 0
+    ;;
+stop)
+    "$DOCKER" stop "$NAME" > /dev/null 2>&1
+    "$DOCKER" rm -f "$NAME" > /dev/null 2>&1
+    exit 0
+    ;;
+status)
+    "$DOCKER" inspect -f '{{.State.Running}}' "$NAME" 2>/dev/null | grep -q true && exit 0
+    exit 3
+    ;;
+log)
+    "$DOCKER" logs --tail 200 "$NAME" 2>&1
+    exit 0
+    ;;
+esac
+exit 0
