@@ -50,24 +50,26 @@ later photos of that period to it.
 
 ## Run it
 
-### On a Synology NAS (prebuilt image)
+### On a Synology NAS (prebuilt image, no SSH)
 
-A GitHub Action builds the image on every push to `main` and publishes it to the GitHub registry:
-`ghcr.io/galaticlag/synopixtri:edge` (latest development build), and `:latest` / `:0.3.0` for tagged releases.
+A GitHub Action builds the image on every push to `main` and tags releases `vX.Y.Z`.
 
 1. Create the folders in File Station: your photo share (for example `photo`, with an `inbox` sub-folder) and
    `docker/synopixtri` for the data.
-2. Over SSH (DSM 6 cannot search ghcr.io from its Docker app, but it runs the image fine once pulled):
-   ```bash
-   sudo docker pull ghcr.io/galaticlag/synopixtri:edge
-   ```
-3. In the DSM Docker app, **Image** -> select `ghcr.io/galaticlag/synopixtri` -> **Launch**. Map port 8080, and two
-   folders: `/volume1/photo` -> `/photos` and `/volume1/docker/synopixtri` -> `/data`. Set the environment variable
-   `SYNOPIXTRI_PASSWORD`. Or paste `docker-compose.yml` in a Portainer stack.
-4. To update: pull again, then recreate the container (the data lives in `/data`, nothing is lost).
+2. In the DSM **Docker** app, open **Registry**, search `synopixtri`, download the image (tag `latest` for a
+   release, `edge` for the newest development build). This works once the maintainer has set the Docker Hub
+   secrets (see below).
+3. **Image** -> select it -> **Launch**. Map port 8080, and two folders: `/volume1/photo` -> `/photos` and
+   `/volume1/docker/synopixtri` -> `/data`. Set the environment variable `SYNOPIXTRI_PASSWORD`.
+   Or paste `docker-compose.yml` in a Portainer stack.
+4. To update: download the image again, then recreate the container (the data lives in `/data`).
 
-If the pull is refused, the package is still private: on GitHub, *Packages -> synopixtri -> Package settings ->
-Change visibility -> Public*.
+The image is also published to `ghcr.io/galaticlag/synopixtri` (usable with `docker pull` or Portainer; the DSM 6
+Registry search cannot see it).
+
+**Maintainers**: to publish on Docker Hub, create an access token on hub.docker.com (Account settings -> Security),
+then add the repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (GitHub: Settings -> Secrets and
+variables -> Actions). The next push publishes `<user>/synopixtri`.
 
 ### Build it yourself
 
