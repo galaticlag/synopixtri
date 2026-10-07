@@ -1,0 +1,18 @@
+# Portainer "Stack" or `docker-compose up -d`.
+services:
+  synopixtri:
+    image: ghcr.io/galaticlag/synopixtri:edge   # or :latest once a release is tagged
+    container_name: synopixtri
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Europe/Paris
+      SYNOPIXTRI_PASSWORD: "change-me"
+    # Run as the owner of your photo share so File Station keeps full control of the files
+    # (find the ids over SSH with: id <your-user>).
+    # user: "1026:100"
+    volumes:
+      # ONE mount for the whole photo tree: moving files between inbox and library stays an atomic rename.
+      - /volume1/photo:/photos
+      - /volume1/docker/synopixtri:/data
