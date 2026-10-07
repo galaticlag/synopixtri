@@ -18,4 +18,4 @@ Design phase. Nothing usable yet.
 
 ## License
 
-To be defined.
+[GNU General Public License v3.0](LICENSE).
