@@ -175,3 +175,17 @@ def test_reminder_disabled_by_default_and_test_endpoint(env, monkeypatch):
         monkeypatch.setitem(notify.SENDERS, "ntfy", lambda cfg, title, body, items: sent.append(title))
         c.put("/api/settings", json={"notify_kind": "ntfy", "notify_url": "http://127.0.0.1:9/x"})
         assert c.post("/api/notify/test").json()["sent"] is True and sent == ["SynoPixtri: test"]
+
+
+def test_a_newer_pass_replaces_an_older_one_waiting_at_the_brake(env):
+    env.settings(brake_max_files=2)
+    for i in range(4):
+        env.add(f"E{i}.JPG", photo(2026, 3, 14, 10 + i))
+    env.settle(NOW)
+    env.run(NOW + 60)
+    env.run(NOW + 120)
+    with client(env) as c:
+        status = c.get("/api/status").json()
+        assert len(status["paused_jobs"]) == 1 and status["paused_planned"] >= 3
+        states = sorted(j["state"] for j in c.get("/api/jobs").json())
+        assert states.count("paused_brake") == 1 and "superseded" in states

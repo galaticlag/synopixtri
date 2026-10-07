@@ -170,7 +170,7 @@ const base = (p) => String(p).split(/[\\/]/).pop();
 const thumb = (p) => `<img loading="lazy" src="/api/thumb?path=${encodeURIComponent(p)}" title="${esc(base(p))}" onerror="this.style.visibility='hidden'">`;
 const DAYS = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
 const STATE = { done: "terminé", done_with_errors: "terminé avec erreurs", dry_run: "simulation", running: "en cours",
-  paused_brake: "en pause (frein)", failed: "échec", undone: "annulé", partial_undo: "annulé en partie", confirmed: "confirmé" };
+  paused_brake: "en pause (frein)", failed: "échec", undone: "annulé", partial_undo: "annulé en partie", confirmed: "confirmé", superseded: "remplacé" };
 const HELD = { maturing: "en maturation", awaiting_validation: "à valider", ignored_by_rule: "ignorés par règle", zone_leave: "laissés (zone)",
   waiting_live_partner: "attente Live", partner_uploading: "envoi en cours" };
 
@@ -215,8 +215,9 @@ async function refresh() {
       + (st.progress ? ` - lecture des fichiers : ${st.progress.done} / ${st.progress.total}` : "");
     const b = $("b-validate"); b.textContent = st.proposals; b.classList.toggle("hidden", !st.proposals);
     $("alert").innerHTML = (st.paused_jobs.length
-      ? `<div class="card warn"><b>Frein d'urgence :</b> un passage dépasse la limite de fichiers et attend ta confirmation.
-         ${st.paused_jobs.map((id) => `<button onclick="confirmJob(${id})">Confirmer et continuer</button>`).join(" ")}</div>` : "")
+      ? `<div class="card warn"><b>Frein d'urgence :</b> le dernier passage déplacerait ${st.paused_planned || "beaucoup de"} fichiers, au-delà de la limite de sécurité.
+         Vérifie d'abord avec « Simulation » ce qui serait fait, puis
+         <button onclick="confirmJob(${st.paused_jobs[0]})">Confirmer et continuer</button></div>` : "")
       + (st.proposals ? `<div class="card warn"><b>${st.proposals} regroupement(s)</b> attendent ta validation. <button onclick="show('validate')">Voir</button></div>` : "");
     $("toName").innerHTML = st.to_name.length
       ? "<ul>" + st.to_name.map((f) => `<li><code>${esc(f.path.split(/[\\/]/).slice(-2).join("/"))}</code></li>`).join("") + "</ul>"

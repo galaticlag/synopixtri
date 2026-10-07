@@ -85,7 +85,10 @@ def create_app(boot: config.Bootstrap, *, start_scheduler: bool = True) -> FastA
                 "inbox_files": c.execute("SELECT COUNT(*) FROM inbox_file").fetchone()[0],
                 "last_job": jobs.job_dict(last) if last else None,
                 "to_name": folders.to_name(c, str(values["placeholder_label"]), str(values["event_template"])),
-                "paused_jobs": [r["id"] for r in c.execute("SELECT id FROM job WHERE state='paused_brake'")],
+                "paused_jobs": [r["id"] for r in c.execute("SELECT id FROM job WHERE state='paused_brake' ORDER BY id DESC")],
+                "paused_planned": next(
+                    (json.loads(r["stats_json"] or "{}").get("planned_moves") for r in c.execute(
+                        "SELECT stats_json FROM job WHERE state='paused_brake' ORDER BY id DESC LIMIT 1")), None),
                 "proposals": c.execute("SELECT COUNT(*) FROM proposal").fetchone()[0],
                 "validation_mode": bool(values["validation_mode"]),
                 "progress": json.loads(p["value"]) if (p := c.execute("SELECT value FROM kv WHERE key='progress'").fetchone()) else None,
@@ -163,7 +166,7 @@ def create_app(boot: config.Bootstrap, *, start_scheduler: bool = True) -> FastA
             row = c.execute("SELECT state FROM job WHERE id=?", (job_id,)).fetchone()
             if row is None or row["state"] != "paused_brake":
                 raise HTTPException(404, "no paused job with this id")
-            c.execute("UPDATE job SET state='confirmed' WHERE id=?", (job_id,))
+            c.execute("UPDATE job SET state='confirmed' WHERE state='paused_brake'")
             c.commit()
         try:
             scheduler.run_now(skip_brake=True)

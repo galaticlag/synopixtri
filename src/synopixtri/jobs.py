@@ -89,6 +89,8 @@ def _run(boot, dry_run, skip_brake, now, reader, geocoder) -> int:
                 "UPDATE job SET state=?, finished_at=?, stats_json=? WHERE id=?",
                 (state, time.time(), json.dumps(stats), job_id),
             )
+            if not dry_run:  # a newer real pass replaces any older pass still waiting for confirmation
+                conn.execute("UPDATE job SET state='superseded' WHERE state='paused_brake' AND id<?", (job_id,))
             conn.commit()
             if not dry_run and state in ("done", "done_with_errors"):
                 notify.check(conn, cfg, now)
