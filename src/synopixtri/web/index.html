@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SynoPixtri</title>
+<style>
+  :root { --bg:#f6f6f4; --card:#fff; --ink:#1c1c1a; --muted:#6b6b66; --line:#e2e2dd; --accent:#2f6f5e; --warn:#b4532a; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161615; --card:#1f1f1d; --ink:#ecece8; --muted:#9a9a93; --line:#33332f; --accent:#6fc2a9; --warn:#e08a5e; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width:1040px; margin:0 auto; padding:20px 16px 48px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  h2 { font-size:15px; margin:0 0 10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  h3 { font-size:15px; margin:14px 0 6px; }
+  .sub { color:var(--muted); margin:0 0 14px; }
+  nav { display:flex; gap:4px; flex-wrap:wrap; margin:0 0 18px; border-bottom:1px solid var(--line); }
+  nav a { padding:8px 12px; text-decoration:none; color:var(--muted); border-bottom:2px solid transparent; cursor:pointer; }
+  nav a.on { color:var(--ink); border-color:var(--accent); font-weight:600; }
+  nav .badge { background:var(--warn); color:#fff; border-radius:99px; font-size:11px; padding:0 6px; margin-left:4px; }
+  section { display:none; } section.on { display:block; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-bottom:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:16px; }
+  .grid .card { margin:0; }
+  .big { font-size:26px; font-weight:600; }
+  .muted { color:var(--muted); font-size:13px; }
+  button { font:inherit; padding:6px 12px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.danger { color:var(--warn); border-color:var(--warn); }
+  button:disabled { opacity:.5; cursor:default; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .tag { display:inline-block; padding:1px 8px; border-radius:99px; border:1px solid var(--line); font-size:12px; }
+  .warn { border-color:var(--warn); color:var(--warn); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  label { display:block; font-size:13px; color:var(--muted); margin-top:10px; }
+  label.inline { display:inline-flex; gap:6px; align-items:center; margin:0 10px 0 0; }
+  input[type=text], input[type=number], input[type=date], input[type=password], select, textarea { width:100%; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font:inherit; }
+  .fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:0 16px; }
+  .help { font-size:12px; color:var(--muted); margin-top:2px; }
+  code { font-size:12px; }
+  ul { margin:6px 0 0; padding-left:18px; }
+  .thumbs { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+  .thumbs img { width:84px; height:84px; object-fit:cover; border-radius:6px; border:1px solid var(--line); background:var(--bg); }
+  .bar { height:8px; background:var(--accent); border-radius:4px; opacity:.7; }
+  .cond { display:grid; grid-template-columns:150px 1fr auto; gap:8px; align-items:start; padding:8px 0; border-bottom:1px dashed var(--line); }
+  #map { height:300px; margin-top:8px; border-radius:8px; display:none; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>SynoPixtri</h1>
+  <p class="sub">Tri automatique de tes photos. L'application travaille seule, cette page sert au suivi et aux réglages.</p>
+  <nav id="nav"></nav>
+
+  <!-- Accueil -->
+  <section id="p-home">
+    <div id="alert"></div>
+    <div class="grid">
+      <div class="card"><h2>Prochain passage</h2><div class="big" id="next">-</div><div class="muted" id="nextSub"></div></div>
+      <div class="card"><h2>Dans l'arrivée</h2><div class="big" id="inbox">-</div><div class="muted">fichiers en attente</div></div>
+      <div class="card"><h2>Dernier passage</h2><div class="big" id="last">-</div><div class="muted" id="lastSub"></div></div>
+    </div>
+    <div class="card">
+      <div class="row">
+        <button class="primary" id="run">Lancer un passage</button>
+        <button id="dry">Simulation (rien n'est déplacé)</button>
+        <span class="muted" id="msg"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Dossiers à nommer</h2>
+      <div id="toName" class="muted">Rien à nommer.</div>
+      <p class="muted">Renomme-les directement dans File Station : ton nom est conservé et les prochaines photos y sont ajoutées.</p>
+    </div>
+    <div class="card">
+      <h2>Journal</h2>
+      <table><thead><tr><th>#</th><th>Date</th><th>État</th><th>Détail</th><th></th></tr></thead><tbody id="jobs"></tbody></table>
+      <div id="ops"></div>
+    </div>
+  </section>
+
+  <!-- À valider -->
+  <section id="p-validate">
+    <div class="card"><h2>Regroupements à valider</h2>
+      <p class="muted">Mode « avec validation » : les nouveaux événements attendent ton accord avant d'être créés. Renomme, fusionne, scinde ou garde dans « Vie de famille ». La décision est appliquée au prochain passage.</p>
+      <div class="row"><label class="inline"><input type="checkbox" id="vmode"> Activer le mode avec validation</label><button id="vsave">Enregistrer</button><button id="vrun">Lancer un passage</button><span class="muted" id="vmsg"></span></div>
+    </div>
+    <div id="proposals"></div>
+    <div class="card"><h2>Décisions enregistrées</h2><div id="approvals" class="muted">Aucune.</div></div>
+  </section>
+
+  <!-- Zones -->
+  <section id="p-zones">
+    <div class="card"><h2>Zones géographiques</h2>
+      <p class="muted">Une zone « Travail » ou « Exclusion » met de côté (ou ignore, ou envoie en revue) les médias pris dedans, avec une exception si un jour contient beaucoup de médias. Une zone « Domicile » ou « Lieu fréquent » règle les seuils et le nom du lieu.</p>
+      <div id="zoneList"></div>
+      <button id="zoneNew">Ajouter une zone</button>
+    </div>
+    <div class="card hidden" id="zoneForm"></div>
+  </section>
+
+  <!-- Règles -->
+  <section id="p-rules">
+    <div class="card"><h2>Règles « si... alors... »</h2>
+      <p class="muted">Évaluées dans l'ordre, avant tout regroupement. La première règle qui correspond décide (sauf « étiqueter »).</p>
+      <div id="ruleList"></div>
+      <div class="row"><button id="ruleNew">Nouvelle règle</button></div>
+    </div>
+    <div class="card hidden" id="ruleForm"></div>
+    <div class="card"><h2>Modèles prêts à l'emploi</h2><div id="ruleTemplates"></div></div>
+    <div class="card"><h2>Versions</h2><p class="muted">Chaque modification de zones ou de règles crée une version. Tu peux revenir en arrière.</p><div id="ruleVersions"></div></div>
+  </section>
+
+  <!-- Nommage -->
+  <section id="p-naming">
+    <div class="card"><h2>Modèles de noms de dossiers</h2>
+      <p class="muted">Événement : <code>{range}</code> (date ou période), <code>{label}</code>, <code>{place}</code> (en dernier). Vie quotidienne : <code>{year}</code>, <code>{month}</code>, <code>{label}</code>. Les dossiers déjà créés gardent leur nom.</p>
+      <label>Événement et séjour<input type="text" id="tplEvent"></label>
+      <label>Dossier mensuel<input type="text" id="tplRoutine"></label>
+      <div class="fields"><label>Libellé provisoire<input type="text" id="lblPlaceholder"></label><label>Libellé « vie quotidienne »<input type="text" id="lblRoutine"></label><label>Lieu inconnu<input type="text" id="lblUnknown"></label></div>
+      <h3>Aperçu</h3><div id="tplPreview" class="muted"></div>
+      <div class="row" style="margin-top:12px"><button class="primary" id="tplSave">Enregistrer</button><span class="muted" id="tplMsg"></span></div>
+    </div>
+  </section>
+
+  <!-- Mis à l'écart -->
+  <section id="p-aside">
+    <div class="card"><h2>Mis à l'écart</h2>
+      <p class="muted">Fichiers écartés par une règle ou une zone. Rien n'est supprimé (sauf si tu actives la suppression après N jours dans les réglages). Remets-les dans l'arrivée en un clic : ils ne seront plus écartés.</p>
+      <div id="asideList" class="muted">Rien de côté.</div>
+      <div class="row" style="margin-top:10px"><button id="asideRestore">Remettre la sélection dans l'arrivée</button><span class="muted" id="asideMsg"></span></div>
+    </div>
+  </section>
+
+  <!-- Doublons -->
+  <section id="p-dups">
+    <div class="card"><h2>Doublons exacts mis en quarantaine</h2><div id="dupExact" class="muted">Aucun.</div></div>
+    <div class="card"><h2>Photos quasi identiques (dans l'arrivée)</h2><div id="dupSimilar" class="muted">Aucune.</div></div>
+  </section>
+
+  <!-- Chronologie -->
+  <section id="p-timeline">
+    <div class="card"><h2>Chronologie de la bibliothèque</h2><p class="muted">Un dossier verrouillé ne reçoit plus rien de nouveau : les médias qui lui reviendraient vont en revue.</p><div id="timeline" class="muted">Rien de classé pour l'instant.</div></div>
+  </section>
+
+  <!-- Réglages -->
+  <section id="p-settings">
+    <div id="settingsGroups"></div>
+    <div class="card"><div class="row"><button class="primary" id="save">Enregistrer les réglages</button><button id="notifyTest">Envoyer une notification de test</button><span class="muted" id="saveMsg"></span></div></div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const api = async (path, opts = {}) => {
+  const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(typeof body.detail === "string" ? body.detail : (r.statusText || "erreur"));
+  return body;
+};
+const post = (path, data) => api(path, { method: "POST", body: JSON.stringify(data ?? {}) });
+const put = (path, data) => api(path, { method: "PUT", body: JSON.stringify(data) });
+const fmt = (ts) => ts ? new Date(ts * 1000).toLocaleString("fr-FR") : "-";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const base = (p) => String(p).split(/[\\/]/).pop();
+const thumb = (p) => `<img loading="lazy" src="/api/thumb?path=${encodeURIComponent(p)}" title="${esc(base(p))}" onerror="this.style.visibility='hidden'">`;
+const DAYS = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
+const STATE = { done: "terminé", done_with_errors: "terminé avec erreurs", dry_run: "simulation", running: "en cours",
+  paused_brake: "en pause (frein)", failed: "échec", undone: "annulé", partial_undo: "annulé en partie", confirmed: "confirmé" };
+const HELD = { maturing: "en maturation", awaiting_validation: "à valider", ignored_by_rule: "ignorés par règle", zone_leave: "laissés (zone)",
+  waiting_live_partner: "attente Live", partner_uploading: "envoi en cours" };
+
+// ---- navigation ----
+const TABS = [["home", "Accueil"], ["validate", "À valider"], ["zones", "Zones"], ["rules", "Règles"], ["naming", "Nommage"],
+  ["aside", "Mis à l'écart"], ["dups", "Doublons"], ["timeline", "Chronologie"], ["settings", "Réglages"]];
+const LOADERS = { home: refresh, validate: loadProposals, zones: loadZones, rules: loadRules, naming: loadNaming,
+  aside: loadAside, dups: loadDups, timeline: loadTimeline, settings: loadSettings };
+function show(name) {
+  if (!LOADERS[name]) name = "home";
+  document.querySelectorAll("section").forEach((s) => s.classList.toggle("on", s.id === "p-" + name));
+  document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("on", a.dataset.t === name));
+  location.hash = name; LOADERS[name]();
+}
+$("nav").innerHTML = TABS.map(([k, v]) => `<a data-t="${k}" onclick="show('${k}')">${v}<span class="badge hidden" id="b-${k}"></span></a>`).join("");
+
+// ---- accueil ----
+function summary(job) {
+  const s = job.stats || {};
+  if (job.error) return esc(job.error);
+  const parts = [];
+  if (s.moved !== undefined) parts.push(`${s.moved} déplacés`);
+  if (s.planned !== undefined) parts.push(`${s.planned} prévus`);
+  if (s.failed) parts.push(`${s.failed} erreurs`);
+  if (s.restored !== undefined) parts.push(`${s.restored} remis dans l'arrivée`);
+  if (s.purged) parts.push(`${s.purged} supprimés (mis de côté depuis longtemps)`);
+  const held = Object.entries(s.held || {}).map(([k, v]) => `${v} ${HELD[k] || k}`).join(", ");
+  if (held) parts.push(`en attente : ${held}`);
+  if (s.folders_renamed_by_user) parts.push(`${s.folders_renamed_by_user} dossier(s) renommé(s) par toi`);
+  return esc(parts.join(" - ") || "-");
+}
+async function refresh() {
+  try {
+    const st = await api("/api/status");
+    $("next").textContent = st.next_run_at ? new Date(st.next_run_at * 1000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "-";
+    $("nextSub").textContent = st.scheduler_error ? "Erreur : " + st.scheduler_error : "";
+    $("inbox").textContent = st.inbox_files;
+    $("last").textContent = st.last_job ? (STATE[st.last_job.state] || st.last_job.state) : "-";
+    $("lastSub").textContent = st.last_job ? fmt(st.last_job.started_at) : "";
+    const b = $("b-validate"); b.textContent = st.proposals; b.classList.toggle("hidden", !st.proposals);
+    $("alert").innerHTML = (st.paused_jobs.length
+      ? `<div class="card warn"><b>Frein d'urgence :</b> un passage dépasse la limite de fichiers et attend ta confirmation.
+         ${st.paused_jobs.map((id) => `<button onclick="confirmJob(${id})">Confirmer et continuer</button>`).join(" ")}</div>` : "")
+      + (st.proposals ? `<div class="card warn"><b>${st.proposals} regroupement(s)</b> attendent ta validation. <button onclick="show('validate')">Voir</button></div>` : "");
+    $("toName").innerHTML = st.to_name.length
+      ? "<ul>" + st.to_name.map((f) => `<li><code>${esc(f.path.split(/[\\/]/).slice(-2).join("/"))}</code></li>`).join("") + "</ul>"
+      : "Rien à nommer.";
+    const jobs = await api("/api/jobs");
+    $("jobs").innerHTML = jobs.map((j) => `<tr><td>${j.id}</td><td>${fmt(j.started_at)}</td>
+      <td><span class="tag ${["failed", "paused_brake", "partial_undo"].includes(j.state) ? "warn" : ""}">${STATE[j.state] || j.state}</span></td>
+      <td>${summary(j)} <a href="#" onclick="showOps(${j.id});return false">détail</a></td>
+      <td>${["done", "done_with_errors"].includes(j.state) ? `<button onclick="undoJob(${j.id})">Annuler</button>` : ""}</td></tr>`).join("");
+  } catch (e) { $("msg").textContent = e.message; }
+}
+async function showOps(id) {
+  const ops = await api(`/api/jobs/${id}/operations?limit=300`);
+  $("ops").innerHTML = `<h3>Passage ${id} : pourquoi chaque fichier a été placé là</h3><table><thead><tr><th>De</th><th>Vers</th><th>Pourquoi</th></tr></thead><tbody>`
+    + ops.filter((o) => o.op !== "mkdir").map((o) => `<tr><td><code>${esc(base(o.src || ""))}</code></td><td><code>${esc((o.dst || "").split(/[\\/]/).slice(-2).join("/"))}</code></td>
+      <td>${esc(o.why || o.reason || "")}${o.error ? ` <span class="tag warn">${esc(o.error)}</span>` : ""}</td></tr>`).join("") + "</tbody></table>";
+  $("ops").scrollIntoView({ behavior: "smooth" });
+}
+async function start(dry) {
+  $("msg").textContent = "";
+  try { await post("/api/jobs/run?dry_run=" + dry); $("msg").textContent = "Passage lancé."; setTimeout(refresh, 1500); }
+  catch (e) { $("msg").textContent = e.message; }
+}
+async function confirmJob(id) { try { await post(`/api/jobs/${id}/confirm`); setTimeout(refresh, 1500); } catch (e) { $("msg").textContent = e.message; } }
+async function undoJob(id) {
+  if (!confirm(`Remettre tous les fichiers du passage ${id} dans l'arrivée ?`)) return;
+  try { const r = await post(`/api/jobs/${id}/undo`); $("msg").textContent = `${r.restored} fichiers restaurés` + (r.conflicts.length ? `, ${r.conflicts.length} conflits` : ""); refresh(); }
+  catch (e) { $("msg").textContent = e.message; }
+}
+$("run").onclick = () => start(false);
+$("dry").onclick = () => start(true);
+
+// ---- à valider ----
+async function loadProposals() {
+  const [list, apps, st] = await Promise.all([api("/api/proposals"), api("/api/approvals"), api("/api/settings")]);
+  $("vmode").checked = !!st.validation_mode;
+  $("proposals").innerHTML = list.length ? list.map((p, i) => `<div class="card" data-i="${i}">
+    <b>${p.start === p.end ? p.start : p.start + " au " + p.end}</b> <span class="tag">${p.count} médias</span>
+    ${p.lat != null ? `<a href="https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lon}#map=11/${p.lat}/${p.lon}" target="_blank" rel="noopener noreferrer">voir sur la carte</a>` : ""}
+    <div class="thumbs">${p.samples.map(thumb).join("")}</div>
+    <div class="fields"><label>Nom<input type="text" class="pl" placeholder="ex. Anniversaire de Léa"></label><label>Lieu<input type="text" class="pp" value="${esc(p.place || "")}"></label></div>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" onclick="approve(${i})">Valider</button>
+      <button onclick="keepRoutine(${i})">Garder en vie quotidienne</button>
+      ${i < list.length - 1 ? `<button onclick="mergeNext(${i})">Fusionner avec le suivant</button>` : ""}
+      ${p.start !== p.end ? `<input type="date" class="ps" min="${p.start}" max="${p.end}" style="width:auto"><button onclick="splitAt(${i})">Scinder à cette date</button>` : ""}
+    </div></div>`).join("") : `<div class="card muted">Rien à valider.</div>`;
+  window._props = list;
+  $("approvals").innerHTML = apps.length ? "<table>" + apps.map((a) => `<tr><td>${a.start_date} au ${a.end_date}</td><td>${a.action === "routine" ? "vie quotidienne" : esc((a.label || "À nommer") + (a.place ? ", " + a.place : ""))}</td>
+    <td><button onclick="delApproval(${a.id})">Retirer</button></td></tr>`).join("") + "</table>" : "Aucune.";
+}
+const card = (i) => document.querySelector(`#proposals [data-i="${i}"]`);
+async function decide(items, msg) {
+  try { await post("/api/approvals", { items }); $("vmsg").textContent = msg || "Décision enregistrée, appliquée au prochain passage."; loadProposals(); }
+  catch (e) { $("vmsg").textContent = e.message; }
+}
+function approve(i) { const p = window._props[i], c = card(i);
+  decide([{ start: p.start, end: p.end, label: c.querySelector(".pl").value, place: c.querySelector(".pp").value }]); }
+function keepRoutine(i) { const p = window._props[i]; decide([{ start: p.start, end: p.end, action: "routine" }]); }
+function mergeNext(i) { const a = window._props[i], b = window._props[i + 1], c = card(i);
+  decide([{ start: a.start, end: b.end, label: c.querySelector(".pl").value, place: c.querySelector(".pp").value }]); }
+function splitAt(i) { const p = window._props[i], c = card(i), d = c.querySelector(".ps").value;
+  if (!d || d <= p.start || d > p.end) { $("vmsg").textContent = "Choisis une date strictement après le début."; return; }
+  const prev = new Date(new Date(d + "T00:00:00Z").getTime() - 86400000).toISOString().slice(0, 10);
+  decide([{ start: p.start, end: prev, label: c.querySelector(".pl").value, place: c.querySelector(".pp").value }, { start: d, end: p.end, place: c.querySelector(".pp").value }]); }
+async function delApproval(id) { await api(`/api/approvals/${id}`, { method: "DELETE" }); loadProposals(); }
+$("vsave").onclick = async () => { await put("/api/settings", { validation_mode: $("vmode").checked }); $("vmsg").textContent = "Enregistré."; };
+$("vrun").onclick = () => post("/api/jobs/run?dry_run=false").then(() => { $("vmsg").textContent = "Passage lancé."; }).catch((e) => { $("vmsg").textContent = e.message; });
+
+// ---- zones ----
+const ZTYPE = { home: "Domicile", work: "Travail", frequent: "Lieu fréquent", exclusion: "Exclusion" };
+const ZACT = { aside: "mettre de côté", leave: "laisser dans l'arrivée", review: "envoyer en revue" };
+let zones = [], zoneMap = null, zoneCircle = null;
+async function loadZones() {
+  zones = await api("/api/zones");
+  $("zoneList").innerHTML = zones.length ? "<table>" + zones.map((z) => `<tr><td><b>${esc(z.name)}</b> ${z.enabled ? "" : '<span class="tag">désactivée</span>'}</td>
+    <td>${ZTYPE[z.type]}${["work", "exclusion"].includes(z.type) ? " : " + ZACT[z.action] : ""}</td>
+    <td class="muted">${z.shape === "circle" ? Math.round(z.geometry.radius_m) + " m" : z.geometry.points.length + " points"}${z.weekdays ? " - " + z.weekdays.map((d) => DAYS[d]).join("/") : ""}${z.time_window ? " - " + z.time_window : ""}</td>
+    <td><button onclick="editZone(${z.id})">Modifier</button> <button class="danger" onclick="delZone(${z.id})">Supprimer</button></td></tr>`).join("") + "</table>" : "<p class='muted'>Aucune zone.</p>";
+}
+function zoneForm(z) {
+  z = z || { name: "", type: "work", shape: "circle", geometry: { lat: "", lon: "", radius_m: 300 }, action: "aside", weekdays: null, time_window: "", volume_exception: "", event_min: "", place_name: "", label: "", enabled: true };
+  const g = z.geometry, f = $("zoneForm");
+  f.classList.remove("hidden"); f.dataset.id = z.id || "";
+  f.innerHTML = `<h2>${z.id ? "Modifier" : "Nouvelle"} zone</h2><div class="fields">
+    <label>Nom<input type="text" id="zn" value="${esc(z.name)}"></label>
+    <label>Type<select id="zt">${Object.entries(ZTYPE).map(([k, v]) => `<option value="${k}" ${z.type === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+    <label>Forme<select id="zs"><option value="circle" ${z.shape === "circle" ? "selected" : ""}>Cercle</option><option value="polygon" ${z.shape === "polygon" ? "selected" : ""}>Polygone</option></select></label>
+    <label>Action (travail / exclusion)<select id="za">${Object.entries(ZACT).map(([k, v]) => `<option value="${k}" ${z.action === k ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>
+    <div id="zcircle" class="fields"><label>Latitude<input type="number" step="any" id="zlat" value="${g.lat ?? ""}"></label><label>Longitude<input type="number" step="any" id="zlon" value="${g.lon ?? ""}"></label><label>Rayon (m)<input type="number" id="zr" value="${g.radius_m ?? 300}"></label></div>
+    <div id="zpoly" class="hidden"><label>Sommets, un par ligne : latitude, longitude<textarea id="zpts" rows="4">${(g.points || []).map((p) => p.join(", ")).join("\n")}</textarea></label></div>
+    <div class="row" style="margin-top:8px"><button id="zmapbtn">Afficher la carte</button><span class="help">Charge des tuiles OpenStreetMap depuis internet (uniquement si tu cliques). Clique sur la carte pour placer le centre.</span></div><div id="map"></div>
+    <h3>Quand</h3><div class="row">${DAYS.map((d, i) => `<label class="inline"><input type="checkbox" class="zd" value="${i}" ${z.weekdays && z.weekdays.includes(i) ? "checked" : ""}> ${d}</label>`).join("")}</div>
+    <div class="fields"><label>Plage horaire (HH:MM-HH:MM, vide = toute la journée)<input type="text" id="zw" value="${esc(z.time_window || "")}"></label>
+    <label>Exception de volume : à partir de N médias le même jour, envoyer en revue au lieu de mettre de côté<input type="number" id="zv" value="${z.volume_exception ?? ""}"></label></div>
+    <h3>Pour domicile et lieux fréquents</h3><div class="fields"><label>Seuil d'événement ici (0 = jamais d'événement)<input type="number" id="ze" value="${z.event_min ?? ""}"></label>
+    <label>Nom du lieu<input type="text" id="zp" value="${esc(z.place_name || "")}"></label><label>Libellé des événements ici<input type="text" id="zl" value="${esc(z.label || "")}"></label></div>
+    <label class="inline"><input type="checkbox" id="zen" ${z.enabled ? "checked" : ""}> Zone active</label>
+    <div class="row" style="margin-top:12px"><button class="primary" id="zsave">Enregistrer</button><button id="zcancel">Annuler</button><span class="muted" id="zmsg"></span></div>`;
+  const sync = () => { $("zcircle").classList.toggle("hidden", $("zs").value !== "circle"); $("zpoly").classList.toggle("hidden", $("zs").value !== "polygon"); };
+  $("zs").onchange = sync; sync();
+  $("zcancel").onclick = () => f.classList.add("hidden");
+  $("zmapbtn").onclick = showMap;
+  $("zsave").onclick = saveZone;
+  f.scrollIntoView({ behavior: "smooth" });
+}
+function editZone(id) { zoneForm(zones.find((z) => z.id === id)); }
+$("zoneNew").onclick = () => zoneForm();
+async function delZone(id) { if (confirm("Supprimer cette zone ?")) { await api(`/api/zones/${id}`, { method: "DELETE" }); loadZones(); } }
+function readZone() {
+  const num = (id) => $(id).value === "" ? null : Number($(id).value);
+  const shape = $("zs").value;
+  const geometry = shape === "circle" ? { lat: num("zlat"), lon: num("zlon"), radius_m: num("zr") }
+    : { points: $("zpts").value.split("\n").map((l) => l.split(",").map(Number)).filter((p) => p.length === 2 && !p.some(isNaN)) };
+  return { name: $("zn").value, type: $("zt").value, shape, geometry, action: $("za").value,
+    weekdays: [...document.querySelectorAll(".zd:checked")].map((c) => Number(c.value)), time_window: $("zw").value,
+    volume_exception: num("zv"), event_min: num("ze"), place_name: $("zp").value, label: $("zl").value, enabled: $("zen").checked };
+}
+async function saveZone() {
+  const id = $("zoneForm").dataset.id;
+  try { id ? await put(`/api/zones/${id}`, readZone()) : await post("/api/zones", readZone()); $("zoneForm").classList.add("hidden"); loadZones(); }
+  catch (e) { $("zmsg").textContent = e.message; }
+}
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  return new Promise((ok, ko) => {
+    const css = document.createElement("link"); css.rel = "stylesheet"; css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(css);
+    const js = document.createElement("script"); js.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; js.onload = ok; js.onerror = () => ko(new Error("carte indisponible (pas d'accès internet ?)"));
+    document.head.appendChild(js);
+  });
+}
+async function showMap() {
+  try { await loadLeaflet(); } catch (e) { $("zmsg").textContent = e.message; return; }
+  const m = $("map"); m.style.display = "block";
+  if (zoneMap) { zoneMap.remove(); zoneMap = null; }
+  const lat = Number($("zlat").value) || 46.6, lon = Number($("zlon").value) || 2.4;
+  zoneMap = L.map("map").setView([lat, lon], $("zlat").value ? 14 : 5);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(zoneMap);
+  const draw = () => { if (zoneCircle) zoneCircle.remove(); const a = Number($("zlat").value), b = Number($("zlon").value);
+    if (!isNaN(a) && !isNaN(b) && $("zlat").value) zoneCircle = L.circle([a, b], { radius: Number($("zr").value) || 300 }).addTo(zoneMap); };
+  zoneMap.on("click", (ev) => { $("zlat").value = ev.latlng.lat.toFixed(5); $("zlon").value = ev.latlng.lng.toFixed(5); draw(); });
+  $("zr").oninput = draw; draw();
+}
+
+// ---- règles ----
+const ACTLBL = { aside: "mettre de côté", ignore: "ignorer (laisser en place)", review: "envoyer en revue", route: "classer dans un dossier", tag: "étiqueter" };
+const CONDS = {
+  zone: ["Dans une zone", [["zone_id", "Zone", "zone"], ["zone_type", "ou type de zone", "ztype"]]],
+  period: ["Période", [["from", "Du", "date"], ["to", "Au", "date"]]],
+  weekday: ["Jour de la semaine", [["days", "Jours", "days"]]],
+  hours: ["Heures", [["window", "Plage HH:MM-HH:MM", "text"]]],
+  media: ["Type de média", [["value", "Type", ["photo", "video"]]]],
+  device: ["Appareil", [["make", "Marque contient", "text"], ["model", "Modèle contient", "text"]]],
+  filename: ["Nom du fichier", [["patterns", "Motifs (* ?), séparés par des virgules", "list"]]],
+  extension: ["Extension", [["values", "Extensions, séparées par des virgules", "list"]]],
+  source: ["Sous-dossier de l'arrivée", [["folder", "Dossier", "text"]]],
+  size: ["Taille", [["min", "Au moins (Ko)", "ko"], ["max", "Au plus (Ko)", "ko"]]],
+  dimensions: ["Dimensions", [["min_width", "Largeur min (px)", "num"], ["min_height", "Hauteur min", "num"], ["max_width", "Largeur max", "num"], ["max_height", "Hauteur max", "num"]]],
+  duplicate: ["Doublon exact", [["value", "Est un doublon", "bool"]]],
+  gps: ["Position GPS", [["value", "A une position", "bool"]]],
+  analysis: ["Analyse du contenu", [["flag", "Suggestion", ["blur", "dark", "screenshot", "document", "near_duplicate"]]]],
+};
+const FLAGLBL = { blur: "floue", dark: "très sombre", screenshot: "capture d'écran", document: "document", near_duplicate: "quasi identique" };
+let rules = [], editing = null, previewTimer = null;
+async function loadRules() {
+  [rules, zones] = await Promise.all([api("/api/rules"), api("/api/zones")]);
+  $("ruleList").innerHTML = rules.length ? "<table>" + rules.map((r, i) => `<tr><td>${i + 1}</td><td><b>${esc(r.name)}</b> ${r.enabled ? "" : '<span class="tag">désactivée</span>'}<div class="muted">si ${esc(r.description.join(" ET "))}</div></td>
+    <td><span class="tag">${ACTLBL[r.action]}${r.params.folder ? " : " + esc(r.params.folder) : ""}${r.params.tag ? " : " + esc(r.params.tag) : ""}</span></td>
+    <td><button onclick="moveRule(${i},-1)" ${i ? "" : "disabled"}>↑</button><button onclick="moveRule(${i},1)" ${i < rules.length - 1 ? "" : "disabled"}>↓</button>
+    <button onclick="toggleRule(${r.id})">${r.enabled ? "Désactiver" : "Activer"}</button><button onclick="editRule(${r.id})">Modifier</button><button class="danger" onclick="delRule(${r.id})">Supprimer</button></td></tr>`).join("") + "</table>" : "<p class='muted'>Aucune règle : tout est trié automatiquement.</p>";
+  const tpl = await api("/api/rules/templates");
+  $("ruleTemplates").innerHTML = "<table>" + tpl.map((t) => `<tr><td><b>${esc(t.name)}</b><div class="muted">${esc(t.description)}</div></td><td><span class="tag">${ACTLBL[t.action]}</span></td>
+    <td><button onclick='useTemplate(${JSON.stringify(t.id)})'>Utiliser</button></td></tr>`).join("") + "</table>";
+  window._tpl = tpl;
+  const v = await api("/api/rules/versions");
+  $("ruleVersions").innerHTML = v.length ? "<table>" + v.map((x) => `<tr><td>${fmt(x.created_at)}</td><td>${esc(x.note)}</td><td><button onclick="restoreVersion(${x.id})">Revenir à cette version</button></td></tr>`).join("") + "</table>" : "<span class='muted'>Aucune modification.</span>";
+}
+async function moveRule(i, d) { const ids = rules.map((r) => r.id); [ids[i], ids[i + d]] = [ids[i + d], ids[i]]; await post("/api/rules/reorder", { ids }); loadRules(); }
+async function toggleRule(id) { const r = rules.find((x) => x.id === id); await put(`/api/rules/${id}`, { ...r, enabled: !r.enabled }); loadRules(); }
+async function delRule(id) { if (confirm("Supprimer cette règle ?")) { await api(`/api/rules/${id}`, { method: "DELETE" }); loadRules(); } }
+async function restoreVersion(id) { if (confirm("Remplacer zones et règles par cette version ?")) { await post(`/api/rules/versions/${id}/restore`); loadRules(); } }
+function useTemplate(id) { const t = window._tpl.find((x) => x.id === id); ruleForm({ name: t.name, enabled: true, conditions: t.conditions, action: t.action, params: t.params }); }
+$("ruleNew").onclick = () => ruleForm({ name: "", enabled: true, conditions: [{ type: "filename", patterns: [] }], action: "aside", params: {} });
+function editRule(id) { ruleForm(JSON.parse(JSON.stringify(rules.find((r) => r.id === id)))); }
+function condFieldHtml(type, c, idx) {
+  return CONDS[type][1].map(([key, label, kind]) => {
+    let v = c[key], inp;
+    if (kind === "zone") inp = `<select data-f="${key}"><option value="">(aucune)</option>${zones.map((z) => `<option value="${z.id}" ${v == z.id ? "selected" : ""}>${esc(z.name)}</option>`).join("")}</select>`;
+    else if (kind === "ztype") inp = `<select data-f="${key}"><option value="">(aucun)</option>${Object.entries(ZTYPE).map(([k, n]) => `<option value="${k}" ${v === k ? "selected" : ""}>${n}</option>`).join("")}</select>`;
+    else if (kind === "days") inp = DAYS.map((d, i) => `<label class="inline"><input type="checkbox" data-f="${key}" value="${i}" ${(v || []).includes(i) ? "checked" : ""}> ${d}</label>`).join("");
+    else if (kind === "bool") inp = `<select data-f="${key}"><option value="true" ${v !== false ? "selected" : ""}>oui</option><option value="false" ${v === false ? "selected" : ""}>non</option></select>`;
+    else if (Array.isArray(kind)) inp = `<select data-f="${key}">${kind.map((o) => `<option value="${o}" ${v === o ? "selected" : ""}>${FLAGLBL[o] || o}</option>`).join("")}</select>`;
+    else if (kind === "list") inp = `<input type="text" data-f="${key}" value="${esc((v || []).join(", "))}">`;
+    else if (kind === "ko") inp = `<input type="number" data-f="${key}" value="${v == null ? "" : v / 1000}">`;
+    else inp = `<input type="${kind === "date" ? "date" : kind === "num" ? "number" : "text"}" data-f="${key}" value="${esc(v ?? "")}">`;
+    return `<label>${label}${inp}</label>`;
+  }).join("");
+}
+function ruleForm(r) {
+  editing = r; const f = $("ruleForm"); f.classList.remove("hidden");
+  const conds = r.conditions.map((c, i) => `<div class="cond" data-i="${i}"><select class="ct">${Object.entries(CONDS).map(([k, v]) => `<option value="${k}" ${c.type === k ? "selected" : ""}>${v[0]}</option>`).join("")}</select>
+    <div class="fields">${condFieldHtml(c.type, c, i)}</div><button onclick="rmCond(${i})">Retirer</button></div>`).join("");
+  f.innerHTML = `<h2>${r.id ? "Modifier" : "Nouvelle"} règle</h2><div class="fields"><label>Nom<input type="text" id="rn" value="${esc(r.name)}"></label>
+    <label>Alors<select id="ra">${Object.entries(ACTLBL).map(([k, v]) => `<option value="${k}" ${r.action === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+    <label id="rpwrap">Paramètre<input type="text" id="rp" value="${esc(r.params.folder || r.params.tag || "")}"><span class="help" id="rphelp"></span></label></div>
+    <h3>Si toutes ces conditions sont vraies</h3>${conds}<div class="row" style="margin-top:8px"><button onclick="addCond()">Ajouter une condition</button></div>
+    <h3>Aperçu en direct</h3><div id="rprev" class="muted">...</div>
+    <label class="inline" style="margin-top:10px"><input type="checkbox" id="ren" ${r.enabled ? "checked" : ""}> Règle active</label>
+    <div class="row" style="margin-top:12px"><button class="primary" id="rsave">Enregistrer</button><button id="rcancel">Annuler</button><span class="muted" id="rmsg"></span></div>`;
+  f.querySelectorAll(".ct").forEach((s) => s.onchange = () => { syncRule(); editing.conditions[Number(s.closest(".cond").dataset.i)] = { type: s.value }; ruleForm(editing); });
+  f.querySelectorAll("input,select").forEach((el) => { if (!el.classList.contains("ct")) el.addEventListener("input", () => { syncRule(); schedulePreview(); }); });
+  $("ra").onchange = () => { syncRule(); ruleForm(editing); };
+  $("rcancel").onclick = () => f.classList.add("hidden"); $("rsave").onclick = saveRule;
+  const a = $("ra").value; $("rpwrap").classList.toggle("hidden", !["route", "tag"].includes(a));
+  $("rphelp").textContent = a === "route" ? "Dossier sous la bibliothèque, ex. Documents/{year} (jetons {year} {month} {day})" : "Étiquette notée dans le journal";
+  schedulePreview(); f.scrollIntoView({ behavior: "smooth" });
+}
+function readConds() {
+  return [...document.querySelectorAll("#ruleForm .cond")].map((row) => {
+    const type = row.querySelector(".ct").value, c = { type };
+    for (const [key, , kind] of CONDS[type][1]) {
+      const els = [...row.querySelectorAll(`[data-f="${key}"]`)];
+      if (kind === "days") c[key] = els.filter((e) => e.checked).map((e) => Number(e.value));
+      else if (kind === "list") c[key] = els[0].value.split(",").map((x) => x.trim()).filter(Boolean);
+      else if (kind === "bool") c[key] = els[0].value === "true";
+      else if (kind === "ko") { const v = els[0].value; c[key] = v === "" ? null : Math.round(Number(v) * 1000); }
+      else if (kind === "num") { const v = els[0].value; c[key] = v === "" ? null : Number(v); }
+      else if (kind === "zone") { if (els[0].value) c[key] = Number(els[0].value); }
+      else if (kind === "ztype") { if (els[0].value) c[key] = els[0].value; }
+      else c[key] = els[0].value;
+    }
+    return c;
+  });
+}
+function syncRule() {
+  editing.name = $("rn").value; editing.action = $("ra").value; editing.enabled = $("ren").checked; editing.conditions = readConds();
+  const p = $("rp").value; editing.params = editing.action === "route" ? { folder: p } : editing.action === "tag" ? { tag: p } : {};
+}
+function addCond() { syncRule(); editing.conditions.push({ type: "filename", patterns: [] }); ruleForm(editing); }
+function rmCond(i) { syncRule(); editing.conditions.splice(i, 1); ruleForm(editing); }
+function schedulePreview() { clearTimeout(previewTimer); previewTimer = setTimeout(async () => {
+  const box = $("rprev"); if (!box) return;
+  try { const p = await post("/api/rules/preview", { conditions: readConds() });
+    box.innerHTML = `<b>${p.count}</b> fichier(s) concerné(s) sur ${p.total} dans l'arrivée` + (p.examples.length ? "<ul>" + p.examples.map((e) => `<li><code>${esc(e)}</code></li>`).join("") + "</ul>" : ""); }
+  catch (e) { box.textContent = e.message; } }, 400); }
+async function saveRule() {
+  syncRule();
+  try { editing.id ? await put(`/api/rules/${editing.id}`, editing) : await post("/api/rules", editing); $("ruleForm").classList.add("hidden"); loadRules(); }
+  catch (e) { $("rmsg").textContent = e.message; }
+}
+
+// ---- nommage ----
+async function loadNaming() {
+  const s = await api("/api/settings");
+  $("tplEvent").value = s.event_template; $("tplRoutine").value = s.routine_template;
+  $("lblPlaceholder").value = s.placeholder_label; $("lblRoutine").value = s.routine_label; $("lblUnknown").value = s.unknown_place;
+  namingPreview();
+}
+async function namingPreview() {
+  try {
+    const p = await post("/api/naming/preview", { event_template: $("tplEvent").value, routine_template: $("tplRoutine").value,
+      label: $("lblPlaceholder").value, place: "Lyon", routine_label: $("lblRoutine").value });
+    $("tplPreview").innerHTML = `<ul><li>Événement : <code>${esc(p.examples.event)}</code></li><li>Séjour : <code>${esc(p.examples.stay)}</code></li><li>Mois : <code>${esc(p.examples.routine)}</code></li></ul>`
+      + (p.recognised ? "" : "<b class='warn'>Attention : ce modèle ne serait pas reconnu à la relecture des dossiers.</b>");
+  } catch (e) { $("tplPreview").textContent = e.message; }
+}
+["tplEvent", "tplRoutine", "lblPlaceholder", "lblRoutine"].forEach((id) => $(id).addEventListener("input", namingPreview));
+$("tplSave").onclick = async () => {
+  try { await put("/api/settings", { event_template: $("tplEvent").value, routine_template: $("tplRoutine").value,
+    placeholder_label: $("lblPlaceholder").value, routine_label: $("lblRoutine").value, unknown_place: $("lblUnknown").value });
+    $("tplMsg").textContent = "Enregistré. Les nouveaux dossiers utiliseront ces modèles."; } catch (e) { $("tplMsg").textContent = e.message; }
+};
+
+// ---- mis à l'écart ----
+async function loadAside() {
+  const items = await api("/api/aside");
+  $("asideList").innerHTML = items.length ? "<table><thead><tr><th></th><th>Fichier</th><th>Dossier</th><th>Pourquoi</th><th>Date</th></tr></thead>" + items.map((i) => `<tr>
+    <td><input type="checkbox" class="ac" value="${i.id}"></td><td><div class="thumbs" style="margin:0">${thumb(i.path)}</div><code>${esc(i.name)}</code></td><td>${esc(i.folder)}</td><td>${esc(i.why)}</td><td>${fmt(i.moved_at)}</td></tr>`).join("") + "</table>" : "Rien de côté.";
+}
+$("asideRestore").onclick = async () => {
+  const ids = [...document.querySelectorAll(".ac:checked")].map((c) => Number(c.value));
+  if (!ids.length) { $("asideMsg").textContent = "Coche au moins un fichier."; return; }
+  try { const r = await post("/api/aside/restore", { ids }); $("asideMsg").textContent = `${r.restored} fichier(s) remis dans l'arrivée.`; loadAside(); }
+  catch (e) { $("asideMsg").textContent = e.message; }
+};
+
+// ---- doublons ----
+async function loadDups() {
+  const d = await api("/api/duplicates");
+  $("dupExact").innerHTML = d.exact.length ? "<table>" + d.exact.map((e) => `<tr><td><div class="thumbs" style="margin:0">${thumb(e.path)}</div></td><td><code>${esc(e.name)}</code></td><td>${esc(e.why)}</td><td>${fmt(e.at)}</td></tr>`).join("") + "</table>" : "Aucun.";
+  $("dupSimilar").innerHTML = d.similar.length ? d.similar.map((g) => `<div class="thumbs">${g.map(thumb).join("")}</div><div class="muted">La première est la plus nette.</div>`).join("")
+    : (d.analysis_on ? "Aucune dans l'arrivée." : "L'analyse du contenu est désactivée : active-la dans les réglages ou crée une règle « quasi identique ».");
+}
+
+// ---- chronologie ----
+async function loadTimeline() {
+  const months = await api("/api/timeline"); const max = Math.max(1, ...months.map((m) => m.count));
+  $("timeline").innerHTML = months.length ? months.map((m) => `<div style="margin:12px 0"><b>${m.month}</b> <span class="muted">${m.count} médias</span><div class="bar" style="width:${Math.max(2, 100 * m.count / max)}%"></div>
+    <table>${m.folders.map((f) => `<tr><td>${esc(f.name)}</td><td class="muted">${f.count} médias</td><td>${f.status === "verrouille" ? '<span class="tag warn">verrouillé</span>' : f.status === "utilisateur" ? '<span class="tag">à toi</span>' : ""}</td>
+      <td><button onclick="lockFolder(${f.id},${f.status !== "verrouille"})">${f.status === "verrouille" ? "Déverrouiller" : "Verrouiller"}</button></td></tr>`).join("")}</table></div>`).join("") : "Rien de classé pour l'instant.";
+}
+async function lockFolder(id, locked) { await put(`/api/folders/${id}`, { locked }); loadTimeline(); }
+
+// ---- réglages ----
+const GROUPS = [
+  ["Planification", [["scan_interval_min", "Intervalle entre deux passages (minutes)"], ["stability_min", "Un fichier est pris en compte après (minutes sans changement)"],
+    ["active_hours", "Plages horaires actives, séparées par des virgules, ex. 08:00-23:00 (vide = toujours). Utile si le NAS est éteint la nuit."], ["run_on_startup", "Faire un passage au démarrage"],
+    ["startup_delay_s", "Délai avant ce passage (secondes)"], ["timezone", "Fuseau horaire"]]],
+  ["Dossiers (relatifs à la racine des photos)", [["inbox_dir", "Arrivée"], ["library_dir", "Bibliothèque"], ["review_dir", "À revoir"], ["quarantine_dir", "Doublons"], ["aside_dir", "Mis de côté"]]],
+  ["Regroupement", [["event_min_items", "Médias par jour pour faire un événement"], ["away_event_min_items", "Idem hors de chez toi"], ["home_lat", "Latitude du domicile"], ["home_lon", "Longitude du domicile"],
+    ["home_radius_km", "Rayon du domicile (km)"], ["stay_radius_km", "Distance max pour fusionner des jours en séjour (km)"], ["max_gap_days_in_stay", "Jours creux tolérés dans un séjour"]]],
+  ["Cycle de vie", [["day_maturity_hours", "Attente après le dernier fichier d'un jour (heures)"], ["stay_quiet_hours", "Silence avant de clore un séjour (heures)"], ["stay_maturity_days", "Jours entre la fin d'un séjour et son classement"],
+    ["routine_immediate", "Classer tout de suite les jours ordinaires"], ["validation_mode", "Mode avec validation (les nouveaux événements attendent ton accord)"]]],
+  ["Live Photos", [["live_partner_wait_min", "Attente du fichier compagnon (minutes)"], ["live_suffix", "Suffixe du sous-dossier des vidéos Live"], ["orphan_live_policy", "Vidéo Live sans photo", ["live_subfolder", "review", "video_single"]]]],
+  ["Libellés", [["routine_label", "Libellé vie quotidienne"], ["placeholder_label", "Libellé provisoire"], ["unknown_place", "Lieu inconnu"]]],
+  ["Mis de côté", [["aside_purge_days", "Supprimer définitivement après N jours (0 = jamais)"], ["aside_purge_confirmed", "Je confirme vouloir supprimer définitivement ces fichiers"]]],
+  ["Analyse du contenu", [["analysis_enabled", "Analyser toutes les images (sinon seulement si une règle en a besoin)"], ["analysis_max_per_pass", "Images analysées par passage"],
+    ["blur_threshold", "Seuil de flou (plus haut = plus de photos jugées floues)"], ["dark_threshold", "Seuil d'obscurité (0 à 255)"], ["near_duplicate_distance", "Distance pour « quasi identique » (0 à 64)"]]],
+  ["Rappel « à nommer »", [["notify_kind", "Canal", ["none", "ntfy", "webhook", "email"]], ["notify_url", "Adresse (ntfy ou webhook)"], ["notify_after_days", "Prévenir si un dossier attend depuis (jours)"], ["notify_every_days", "Au plus un rappel tous les (jours)"],
+    ["smtp_host", "Courriel : serveur SMTP"], ["smtp_port", "Port (587 STARTTLS, 465 SSL)"], ["smtp_user", "Identifiant"], ["smtp_password", "Mot de passe", "password"], ["smtp_from", "Expéditeur"], ["smtp_to", "Destinataire"]]],
+  ["Sécurité et outils", [["brake_max_files", "Frein d'urgence : fichiers max par passage"], ["exiftool_path", "Chemin d'ExifTool"], ["geocode_enabled", "Chercher le nom des lieux (service Nominatim)"], ["geocode_language", "Langue des noms de lieux"]]],
+];
+let stypes = {};
+async function loadSettings() {
+  const s = await api("/api/settings"); const seen = new Set();
+  $("settingsGroups").innerHTML = GROUPS.map(([title, keys]) => `<div class="card"><h2>${title}</h2><div class="fields">` + keys.map(([k, label, opt]) => {
+    seen.add(k); const v = s[k]; stypes[k] = Array.isArray(v) ? "list" : typeof v;
+    if (typeof v === "boolean") return `<label class="inline" style="margin-top:14px"><input type="checkbox" data-k="${k}" ${v ? "checked" : ""}> ${label}</label>`;
+    if (Array.isArray(opt)) return `<label>${label}<select data-k="${k}">${opt.map((o) => `<option ${v === o ? "selected" : ""}>${o}</option>`).join("")}</select></label>`;
+    const shown = Array.isArray(v) ? v.join(", ") : (v ?? "");
+    return `<label>${label}<input type="${opt === "password" ? "password" : typeof v === "number" ? "number" : "text"}" step="any" data-k="${k}" value="${esc(shown)}"></label>`;
+  }).join("") + "</div></div>").join("");
+}
+$("save").onclick = async () => {
+  const body = {};
+  document.querySelectorAll("#settingsGroups [data-k]").forEach((el) => {
+    const k = el.dataset.k;
+    if (el.type === "checkbox") body[k] = el.checked;
+    else if (stypes[k] === "list") body[k] = el.value.split(",").map((x) => x.trim()).filter(Boolean);
+    else if (stypes[k] === "number") body[k] = Number(el.value);
+    else if (k === "home_lat" || k === "home_lon") body[k] = el.value === "" ? null : Number(el.value);
+    else body[k] = el.value;
+  });
+  if (body.aside_purge_days > 0 && body.aside_purge_confirmed && !confirm(`Les fichiers mis de côté depuis plus de ${body.aside_purge_days} jours seront SUPPRIMÉS définitivement. Continuer ?`)) return;
+  try { await put("/api/settings", body); $("saveMsg").textContent = "Enregistré."; } catch (e) { $("saveMsg").textContent = e.message; }
+};
+$("notifyTest").onclick = async () => {
+  try { const r = await post("/api/notify/test"); $("saveMsg").textContent = r.sent ? "Notification envoyée." : `Non envoyée : ${r.error || r.reason}`; } catch (e) { $("saveMsg").textContent = e.message; }
+};
+
+show(location.hash.slice(1) || "home");
+setInterval(() => { if ($("p-home").classList.contains("on")) refresh(); }, 15000);
+api("/api/status").then((st) => { const b = $("b-validate"); b.textContent = st.proposals; b.classList.toggle("hidden", !st.proposals); }).catch(() => {});
+</script>
+</body>
+</html>

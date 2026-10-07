@@ -1,0 +1,34 @@
+[project]
+name = "synopixtri"
+version = "0.3.0"
+description = "Automatic photo and video sorter for Synology NAS, with a web interface"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "SynoPixtri" }]
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "tzdata>=2024.1",
+  "pillow>=10",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "httpx>=0.27",
+]
+
+[project.scripts]
+synopixtri = "synopixtri.__main__:main"
+
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/synopixtri"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
